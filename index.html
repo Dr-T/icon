@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Logo生成器</title>
+    <title>LOGO智能生成</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
     <!-- 顶部标题区域 -->
     <header class="header">
-        <h1>AI Logo生成器</h1>
-        <p>输入插件信息，自动生成专属Logo</p>
+        <h1>Chrome插件 LOGO 生成</h1>
+        <p>输入你的插件信息，自动生成专属LOGO及相应icons图标包</p>
     </header>
 
     <!-- 主要内容区域 -->
@@ -62,7 +62,7 @@
 
     <!-- 底部信息区域 -->
     <footer class="footer">
-        <p>基于OpenAI API开发 | 响应式设计</p>
+        Powered by <a href="https://openai.com/" target="_blank" rel="noreferrer">OpenAI</a><a href="https://www.trae.ai/" target="_blank" rel="noreferrer">TraeAI</a><a href="https://vercel.com/" target="_blank" rel="noreferrer">Vercel</a></p>
     </footer>
 
     <script>
@@ -141,7 +141,7 @@
                                         uint8Array[i] = imgData.charCodeAt(i);
                                     }
                                     
-                                    zip.file(`icon-${sizeData.size}.png`, uint8Array);
+                                    zip.file(`icon${sizeData.size}.png`, uint8Array);
                                 }
                                 
                                 // 生成并下载zip文件
@@ -266,7 +266,7 @@
                                     uint8Array[i] = imgData.charCodeAt(i);
                                 }
                                 
-                                zip.file(`icon-${sizeData.size}.png`, uint8Array);
+                                zip.file(`icon${sizeData.size}.png`, uint8Array);
                             }
                             
                             // 生成并下载zip文件

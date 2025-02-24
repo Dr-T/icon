@@ -3,6 +3,8 @@ const cors = require('cors');
 const fetch = require('node-fetch');
 const sharp = require('sharp');
 const multer = require('multer');
+const fs = require('fs').promises;
+const path = require('path');
 const upload = multer();
 
 const app = express();
@@ -95,9 +97,12 @@ app.post('/generate-logo', async (req, res) => {
         for (let i = 0; i < sizes.length; i++) {
             const size = sizes[i];
             const buffer = await resizeImage(imageBuffer, size);
+            const fileName = `icon${size}.png`;
+            await fs.writeFile(path.join(__dirname, fileName), buffer);
             resizedImages.push({
-                size: `${size}x${size}`,
-                data: buffer.toString('base64')
+                size: size,
+                data: buffer.toString('base64'),
+                fileName: fileName
             });
 
             // 更新压缩进度
@@ -156,9 +161,12 @@ app.post('/upload-logo', upload.single('logo'), async (req, res) => {
         for (let i = 0; i < sizes.length; i++) {
             const size = sizes[i];
             const buffer = await resizeImage(imageBuffer, size);
+            const fileName = `icon${size}.png`;
+            await fs.writeFile(path.join(__dirname, fileName), buffer);
             resizedImages.push({
-                size: `${size}x${size}`,
-                data: buffer.toString('base64')
+                size: size,
+                data: buffer.toString('base64'),
+                fileName: fileName
             });
         }
 
