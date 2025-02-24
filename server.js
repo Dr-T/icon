@@ -9,6 +9,9 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('.'));
 
+// 导出app实例供Vercel使用
+module.exports = app;
+
 // 设置OpenAI API配置
 const API_URL = 'https://newapi.tx88.eu.org/v1/images/generations';
 const API_KEY = 'sk-b4RY4HvkSdSR4s1uY8myVXxmo6PXZ68Yh2eANajWaf3xO5bg';
