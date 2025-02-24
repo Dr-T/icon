@@ -12,12 +12,18 @@ app.use(express.static('.'));
 // 导出app实例供Vercel使用
 module.exports = app;
 
-// 设置OpenAI API配置
-const API_URL = 'https://newapi.tx88.eu.org/v1/images/generations';
+// 从环境变量获取API配置
 const API_KEY = process.env.OPENAI_API_KEY;
+const BASE_API_URL = process.env.OPENAI_API_URL || 'https://newapi.tx88.eu.org';
+const API_URL = `${BASE_API_URL}/v1/images/generations`;
 
 // 处理Logo生成请求
 app.post('/generate-logo', async (req, res) => {
+    // 验证API密钥是否存在
+    if (!API_KEY) {
+        return res.status(500).json({ error: 'API密钥未配置，请设置OPENAI_API_KEY环境变量' });
+    }
+
     try {
         const { pluginName, pluginDesc } = req.body;
 
