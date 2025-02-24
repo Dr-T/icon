@@ -30,6 +30,8 @@
                               placeholder="请输入插件的功能描述"></textarea>
                 </div>
                 <button type="submit" class="generate-btn">生成Logo</button>
+                <button type="button" class="upload-btn" onclick="document.getElementById('logoUpload').click()">上传Logo</button>
+                <input type="file" id="logoUpload" accept="image/*" style="display: none" onchange="handleLogoUpload(event)">
             </form>
         </section>
 
@@ -70,6 +72,13 @@
             // 获取表单数据
             const pluginName = document.getElementById('pluginName').value;
             const pluginDesc = document.getElementById('pluginDesc').value;
+            
+            // 清理之前的内容
+            const logoContainer = document.querySelector('.logo-container');
+            const downloadBtn = logoContainer.querySelector('.download-btn');
+            if (downloadBtn) {
+                logoContainer.removeChild(downloadBtn);
+            }
             
             // 显示进度条，隐藏其他元素
             const progressContainer = document.querySelector('.progress-container');
@@ -188,3 +197,126 @@
     </script>
 </body>
 </html>
+<script>
+    async function handleLogoUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+    
+        // 清理之前的内容
+        const logoContainer = document.querySelector('.logo-container');
+        const downloadBtn = logoContainer.querySelector('.download-btn');
+        if (downloadBtn) {
+            logoContainer.removeChild(downloadBtn);
+        }
+    
+        // 显示进度条，隐藏其他元素
+        const progressContainer = document.querySelector('.progress-container');
+        const progressBar = document.querySelector('.progress-bar');
+        const progressText = document.querySelector('.progress-text');
+        const spinner = document.querySelector('.loading-spinner');
+        const logoImage = document.getElementById('logoImage');
+        
+        progressContainer.style.display = 'block';
+        spinner.style.display = 'none';
+        logoImage.style.display = 'none';
+    
+        const formData = new FormData();
+        formData.append('logo', file);
+    
+        try {
+            const response = await fetch('http://localhost:3000/upload-logo', {
+                method: 'POST',
+                body: formData
+            });
+    
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+    
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+    
+                const chunk = decoder.decode(value);
+                const updates = chunk.split('\n').filter(Boolean).map(str => JSON.parse(str));
+    
+                for (const update of updates) {
+                    // 更新进度条
+                    progressBar.style.width = `${update.progress}%`;
+                    progressText.textContent = update.message;
+    
+                    if (update.status === 'completed') {
+                        // 处理完成，显示下载按钮
+                        progressContainer.style.display = 'none';
+                        
+                        // 创建下载按钮
+                        const downloadBtn = document.createElement('button');
+                        downloadBtn.className = 'download-btn';
+                        downloadBtn.textContent = '下载全部尺寸';
+                        downloadBtn.onclick = async () => {
+                            // 创建一个JSZip实例
+                            const zip = new JSZip();
+                            
+                            // 添加所有尺寸的图片到zip
+                            for (const sizeData of update.sizes) {
+                                const imgData = atob(sizeData.data);
+                                const arrayBuffer = new ArrayBuffer(imgData.length);
+                                const uint8Array = new Uint8Array(arrayBuffer);
+                                
+                                for (let i = 0; i < imgData.length; i++) {
+                                    uint8Array[i] = imgData.charCodeAt(i);
+                                }
+                                
+                                zip.file(`icon-${sizeData.size}.png`, uint8Array);
+                            }
+                            
+                            // 生成并下载zip文件
+                            const content = await zip.generateAsync({type: 'blob'});
+                            const downloadUrl = URL.createObjectURL(content);
+                            const link = document.createElement('a');
+                            link.href = downloadUrl;
+                            link.download = 'images.zip';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            URL.revokeObjectURL(downloadUrl);
+                        };
+                        
+                        // 将下载按钮添加到logo容器中，插入到图片元素之前
+                        const logoContainer = document.querySelector('.logo-container');
+                        const logoImage = document.getElementById('logoImage');
+                        logoContainer.insertBefore(downloadBtn, logoImage);
+                    } else if (update.originalUrl) {
+                        // 显示原始图片
+                        logoImage.src = update.originalUrl;
+                        logoImage.style.display = 'block';
+                    }
+                }
+            }
+        } catch (error) {
+            const errorModal = document.getElementById('errorModal');
+            const errorMessage = document.getElementById('errorMessage');
+            const closeBtn = document.querySelector('.close-btn');
+            
+            // 隐藏进度条
+            progressContainer.style.display = 'none';
+            
+            // 显示错误信息
+            errorMessage.textContent = error.message || '处理图片时出现错误，请重试';
+            errorModal.style.display = 'block';
+            
+            // 关闭按钮事件
+            closeBtn.onclick = function() {
+                errorModal.style.display = 'none';
+            }
+            
+            // 点击模态框外部关闭
+            window.onclick = function(event) {
+                if (event.target == errorModal) {
+                    errorModal.style.display = 'none';
+                }
+            }
+            
+            console.error('Error:', error);
+        }
+    }
+</script>

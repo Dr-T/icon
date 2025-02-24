@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
 const sharp = require('sharp');
+const multer = require('multer');
+const upload = multer();
 
 const app = express();
 
@@ -128,6 +130,50 @@ app.post('/generate-logo', async (req, res) => {
         }
         
         res.status(500).json({ error: errorMessage });
+    }
+});
+
+// 处理Logo上传请求
+app.post('/upload-logo', upload.single('logo'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: '请选择要上传的图片' });
+        }
+
+        // 通知前端开始处理
+        res.write(JSON.stringify({ status: 'processing', progress: 30, message: '正在处理图片...' }) + '\n');
+
+        // 获取上传的图片buffer
+        const imageBuffer = req.file.buffer;
+
+        // 通知前端原始图片已接收
+        res.write(JSON.stringify({ status: 'processing', progress: 60, message: '正在生成不同尺寸...', originalUrl: `data:${req.file.mimetype};base64,${imageBuffer.toString('base64')}` }) + '\n');
+
+        // 处理不同尺寸的图片
+        const sizes = [16, 32, 48, 128];
+        const resizedImages = [];
+
+        for (let i = 0; i < sizes.length; i++) {
+            const size = sizes[i];
+            const buffer = await resizeImage(imageBuffer, size);
+            resizedImages.push({
+                size: `${size}x${size}`,
+                data: buffer.toString('base64')
+            });
+        }
+
+        // 发送完成消息和处理后的图片
+        res.write(JSON.stringify({
+            status: 'completed',
+            progress: 100,
+            message: '处理完成',
+            sizes: resizedImages
+        }) + '\n');
+
+        res.end();
+    } catch (error) {
+        console.error('Error processing uploaded image:', error);
+        res.status(500).json({ error: '处理图片时出现错误' });
     }
 });
 
