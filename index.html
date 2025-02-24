@@ -4,14 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LOGO智能生成</title>
+    <link rel="icon" type="image/x-icon" href="assets/logo.png">
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
     <!-- 顶部标题区域 -->
     <header class="header">
-        <h1>Chrome插件 LOGO 生成</h1>
-        <p>输入你的插件信息，自动生成专属LOGO及相应icons图标包</p>
+        <div class="header-content">
+            <div class="title-container">
+                <img src="assets/logo.svg" alt="Logo" class="site-logo">
+                <div class="title-text">
+                    <h1>Chrome插件 LOGO 生成</h1>
+                    <p>输入插件信息，自动生成专属LOGO及icons图标包</p>
+                </div>
+            </div>
+        </div>
     </header>
 
     <!-- 主要内容区域 -->
@@ -29,8 +37,8 @@
                     <textarea id="pluginDesc" name="pluginDesc" required 
                               placeholder="请输入插件的功能描述"></textarea>
                 </div>
-                <button type="submit" class="generate-btn">生成Logo</button>
-                <button type="button" class="upload-btn" onclick="document.getElementById('logoUpload').click()">上传Logo</button>
+                <button type="submit" class="generate-btn">生成LOGO</button>
+                <button type="button" class="upload-btn" onclick="document.getElementById('logoUpload').click()">上传LOGO</button>
                 <input type="file" id="logoUpload" accept="image/*" style="display: none" onchange="handleLogoUpload(event)">
             </form>
         </section>

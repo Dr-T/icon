@@ -1,0 +1,24 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0" y1="0" x2="48" y2="48">
+      <stop offset="0%" stop-color="#0077ed"/>
+      <stop offset="35%" stop-color="#0071e3"/>
+      <stop offset="100%" stop-color="#0066cc"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="48" height="48" rx="8" ry="8" fill="url(#bgGradient)"/>
+  <g filter="url(#glow)">
+    <path d="M24 8L10 22V26L24 40L38 26V22L24 8ZM24 12L34 22V26L24 36L14 26V22L24 12Z" fill="rgba(255,255,255,0.9)"/>
+    <path d="M24 16L14 24L24 34L34 24L24 16Z" fill="rgba(255,255,255,0.9)"/>
+  </g>
+  <path d="M40 2L46 8L40 14L34 8L40 2Z" fill="rgba(255,255,255,0.3)"/>
+  <path d="M8 34L12 38L8 42L4 38L8 34Z" fill="rgba(255,255,255,0.2)"/>
+  <path d="M2 16L0 18L2 20L4 18L2 16ZM46 28L44 30L46 32L48 30L46 28Z" fill="rgba(255,255,255,0.15)"/>
+  <path d="M24 0L32 8L24 16L16 8L24 0Z" fill="rgba(255,255,255,0.2)"/>
+  <path d="M24 32L28 36L24 40L20 36L24 32Z" fill="rgba(255,255,255,0.2)"/>
+  <path d="M12 6L8 10L12 14M36 6L40 10L36 14" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+</svg>

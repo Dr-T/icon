@@ -18,7 +18,7 @@ app.use(express.static('.'));
 module.exports = app;
 
 // 从环境变量获取API配置
-const API_KEY = process.env.OPENAI_API_KEY || 'sk-b4RY4HvkSdSR4s1uY8myVXxmo6PXZ68Yh2eANajWaf3xO5bg';
+const API_KEY = process.env.OPENAI_API_KEY;
 const BASE_API_URL = process.env.OPENAI_API_URL || 'https://newapi.tx88.eu.org';
 const MODEL = process.env.OPENAI_MODEL || 'dall-e-3';
 const API_URL = `${BASE_API_URL}/v1/images/generations`;
