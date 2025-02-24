@@ -14,7 +14,7 @@ module.exports = app;
 
 // 设置OpenAI API配置
 const API_URL = 'https://newapi.tx88.eu.org/v1/images/generations';
-const API_KEY = 'sk-b4RY4HvkSdSR4s1uY8myVXxmo6PXZ68Yh2eANajWaf3xO5bg';
+const API_KEY = process.env.OPENAI_API_KEY;
 
 // 处理Logo生成请求
 app.post('/generate-logo', async (req, res) => {
