@@ -100,10 +100,31 @@ body {
     padding: 2rem;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    min-height: 300px;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
+    gap: 1rem;
+}
+
+.logo-image {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+}
+
+.download-btn {
+    padding: 0.75rem 1.5rem;
+    background-color: #27ae60;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.download-btn:hover {
+    background-color: #219a52;
 }
 
 .logo-image {
@@ -135,6 +156,53 @@ body {
     box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
 }
 
+/* 错误提示弹窗 */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background-color: #fff;
+    margin: 15% auto;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    position: relative;
+    width: 90%;
+    max-width: 500px;
+}
+
+.close-btn {
+    position: absolute;
+    right: 1rem;
+    top: 0.5rem;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #666;
+    cursor: pointer;
+}
+
+.close-btn:hover {
+    color: #333;
+}
+
+.modal h2 {
+    color: #e74c3c;
+    margin-bottom: 1rem;
+}
+
+.modal p {
+    color: #666;
+    line-height: 1.5;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
     .main {
@@ -145,4 +213,48 @@ body {
     .logo-section {
         width: 100%;
     }
+}
+
+/* 图标尺寸预览区域 */
+.sizes-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.size-item {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.size-item img {
+    display: block;
+    margin: 0 auto 0.5rem;
+    max-width: 100%;
+    height: auto;
+}
+
+.size-item p {
+    margin: 0.5rem 0;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.size-item button {
+    background-color: #3498db;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.3s;
+}
+
+.size-item button:hover {
+    background-color: #2980b9;
 }
