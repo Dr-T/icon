@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Logo生成器</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- 顶部标题区域 -->
+    <header class="header">
+        <h1>AI Logo生成器</h1>
+        <p>输入插件信息，自动生成专属Logo</p>
+    </header>
+
+    <!-- 主要内容区域 -->
+    <main class="main">
+        <!-- 输入表单区域 -->
+        <section class="form-section">
+            <form id="logoForm" class="logo-form">
+                <div class="form-group">
+                    <label for="pluginName">插件名称</label>
+                    <input type="text" id="pluginName" name="pluginName" required 
+                           placeholder="请输入插件名称">
+                </div>
+                <div class="form-group">
+                    <label for="pluginDesc">插件描述</label>
+                    <textarea id="pluginDesc" name="pluginDesc" required 
+                              placeholder="请输入插件的功能描述"></textarea>
+                </div>
+                <button type="submit" class="generate-btn">生成Logo</button>
+            </form>
+        </section>
+
+        <!-- Logo展示区域 -->
+        <section class="logo-section">
+            <div class="logo-container">
+                <!-- 加载动画 -->
+                <div class="loading-spinner" style="display: none;"></div>
+                <!-- Logo图片 -->
+                <img id="logoImage" class="logo-image" style="display: none;" alt="生成的Logo">
+            </div>
+        </section>
+    </main>
+
+    <!-- 底部信息区域 -->
+    <footer class="footer">
+        <p>基于OpenAI API开发 | 响应式设计</p>
+    </footer>
+
+    <script>
+        document.getElementById('logoForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // 获取表单数据
+            const pluginName = document.getElementById('pluginName').value;
+            const pluginDesc = document.getElementById('pluginDesc').value;
+            
+            // 显示加载动画
+            const spinner = document.querySelector('.loading-spinner');
+            const logoImage = document.getElementById('logoImage');
+            spinner.style.display = 'block';
+            logoImage.style.display = 'none';
+            
+            try {
+                // 发送请求到后端服务
+                const response = await fetch('http://localhost:3000/generate-logo', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        pluginName,
+                        pluginDesc
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // 显示生成的Logo
+                if (data.url) {
+                    logoImage.src = data.url;
+                    logoImage.style.display = 'block';
+                }
+            } catch (error) {
+                alert('生成Logo时出现错误，请重试');
+                console.error('Error:', error);
+            } finally {
+                spinner.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
