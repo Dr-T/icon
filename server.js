@@ -52,8 +52,8 @@ app.post('/generate-logo', async (req, res) => {
         
         console.log('构建提示词...');
         // 构建提示词
-        const prompt = `为名为"${pluginName}"的浏览器插件设计一个专业的logo。这个插件的功能是：${pluginDesc}。设计风格要简洁现代，适合作为浏览器插件的图标使用。`;
-
+        const prompt = `logo, flat, clean, vector, simplicity modern, minimalist。为名为"${pluginName}"的应用设计简洁现代的logo，其功能是：${pluginDesc}。`;
+        
         // 设置请求超时
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 60000);
