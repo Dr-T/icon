@@ -101,6 +101,7 @@
             
             progressContainer.style.display = 'block';
             progressBar.style.width = '0%';
+            progressText.textContent = '准备生成...';
             spinner.style.display = 'none';
             logoImage.style.display = 'none';
             
@@ -118,9 +119,13 @@
                     })
                 });
 
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
+                console.log('收到服务器响应:', response.status);
+                
+                if (!response.ok && response.headers.get('content-type')?.includes('application/json')) {
+                    const errorData = await response.json();
                     throw new Error(errorData.error || `请求失败: ${response.status}`);
+                } else if (!response.ok) {
+                    throw new Error(`请求失败: ${response.status}`);
                 }
                 
                 if (!response.body) {
@@ -132,6 +137,7 @@
                 const decoder = new TextDecoder();
                 
                 let buffer = '';
+                let hasError = false;
                 
                 while (true) {
                     const { value, done } = await reader.read();
@@ -141,7 +147,9 @@
                     }
                     
                     // 解码新数据并添加到缓冲区
-                    buffer += decoder.decode(value, { stream: true });
+                    const text = decoder.decode(value, { stream: true });
+                    console.log('接收到原始数据:', text);
+                    buffer += text;
                     
                     // 处理完整的JSON对象
                     const lines = buffer.split('\n');
@@ -199,14 +207,74 @@
                                 // 将下载按钮添加到logo容器中
                                 logoContainer.insertBefore(downloadBtn, logoImage);
                             } else if (update.originalUrl) {
-                                console.log('显示原始图片');
-                                // a显示原始图片
+                                console.log('显示原始图片:', update.originalUrl);
+                                // 显示原始图片
                                 logoImage.src = update.originalUrl;
                                 logoImage.style.display = 'block';
+                            } else if (update.error) {
+                                hasError = true;
+                                throw new Error(update.error);
                             }
                         } catch (e) {
                             console.error('解析JSON失败:', line, e);
+                            if (!hasError) {
+                                hasError = true;
+                                throw new Error('解析服务器响应失败');
+                            }
                         }
+                    }
+                }
+                
+                if (buffer.trim()) {
+                    try {
+                        // 处理缓冲区中最后一行
+                        console.log('处理剩余响应数据:', buffer);
+                        const update = JSON.parse(buffer);
+                        
+                        if (update.status === 'completed') {
+                            console.log('最终处理完成');
+                            progressContainer.style.display = 'none';
+                            
+                            // 创建下载按钮
+                            const downloadBtn = document.createElement('button');
+                            downloadBtn.className = 'download-btn';
+                            downloadBtn.textContent = '下载全部尺寸';
+                            downloadBtn.onclick = async () => {
+                                // 创建一个JSZip实例
+                                const zip = new JSZip();
+                                
+                                // 添加所有尺寸的图片到zip
+                                for (const sizeData of update.sizes) {
+                                    const imgData = atob(sizeData.data);
+                                    const arrayBuffer = new ArrayBuffer(imgData.length);
+                                    const uint8Array = new Uint8Array(arrayBuffer);
+                                    
+                                    for (let i = 0; i < imgData.length; i++) {
+                                        uint8Array[i] = imgData.charCodeAt(i);
+                                    }
+                                    
+                                    zip.file(`icon${sizeData.size}.png`, uint8Array);
+                                }
+                                
+                                // 生成并下载zip文件
+                                const content = await zip.generateAsync({type: 'blob'});
+                                const downloadUrl = URL.createObjectURL(content);
+                                const link = document.createElement('a');
+                                link.href = downloadUrl;
+                                link.download = 'images.zip';
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                                URL.revokeObjectURL(downloadUrl);
+                            };
+                            
+                            // 将下载按钮添加到logo容器中
+                            logoContainer.insertBefore(downloadBtn, logoImage);
+                        } else if (update.error) {
+                            throw new Error(update.error);
+                        }
+                    } catch (e) {
+                        console.error('解析最后响应数据失败:', e);
                     }
                 }
             }

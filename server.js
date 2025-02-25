@@ -49,7 +49,8 @@ app.post('/generate-logo', async (req, res) => {
 
         // 第一步：生成原始图片
         res.write(JSON.stringify({ status: 'generating', progress: 30, message: '正在生成原始图片...' }) + '\n');
-
+        
+        console.log('构建提示词...');
         // 构建提示词
         const prompt = `为名为"${pluginName}"的浏览器插件设计一个专业的logo。这个插件的功能是：${pluginDesc}。设计风格要简洁现代，适合作为浏览器插件的图标使用。`;
 
@@ -57,74 +58,121 @@ app.post('/generate-logo', async (req, res) => {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 60000);
 
+        console.log('准备发送API请求到:', API_URL);
         // 发送请求到OpenAI API
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${API_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                prompt,
-                n: 1,
-                model: MODEL,
-                size: '1024x1024',
-                response_format: 'url'
-            }),
-            signal: controller.signal
-        });
-
-        clearTimeout(timeout);
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => null);
-            const status = response.status;
-            const message = errorData?.error?.message || errorData?.message || `API请求失败: ${status}`;
-            return res.status(status).json({ error: message });
-        }
-
-        const data = await response.json();
-        const originalImageUrl = data.data[0].url;
-
-        // 通知前端原始图片已生成
-        res.write(JSON.stringify({ status: 'processing', progress: 60, message: '正在处理图片尺寸...', originalUrl: originalImageUrl }) + '\n');
-
-        // 第二步：处理不同尺寸的图片
-        const imageBuffer = await getImageBuffer(originalImageUrl);
-        const sizes = [16, 32, 48, 128];
-        const resizedImages = [];
-
-        for (let i = 0; i < sizes.length; i++) {
-            const size = sizes[i];
-            const buffer = await resizeImage(imageBuffer, size);
-            const fileName = `icon${size}.png`;
-            
-            // 在Vercel环境中跳过文件写入
-            if (process.env.VERCEL !== '1') {
-                try {
-                    await fs.writeFile(path.join(__dirname, fileName), buffer);
-                } catch (err) {
-                    console.warn(`无法写入文件 ${fileName}:`, err);
-                }
-            }
-            
-            resizedImages.push({
-                size: size,
-                data: buffer.toString('base64'),
-                fileName: fileName
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    prompt,
+                    n: 1,
+                    model: MODEL,
+                    size: '1024x1024',
+                    response_format: 'url'
+                }),
+                signal: controller.signal
             });
 
-            // 更新压缩进度
-            const progress = 60 + Math.floor((i + 1) / sizes.length * 40);
-            res.write(JSON.stringify({ status: 'processing', progress, message: `正在生成 ${size}x${size} 尺寸...` }) + '\n');
+            clearTimeout(timeout);
+            
+            console.log('API响应状态:', response.status);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('API响应错误:', errorText);
+                let errorData;
+                try {
+                    errorData = JSON.parse(errorText);
+                } catch (e) {
+                    errorData = { error: errorText };
+                }
+                const status = response.status;
+                const message = errorData?.error?.message || errorData?.message || `API请求失败: ${status}`;
+                return res.status(status).json({ error: message });
+            }
+
+            const contentType = response.headers.get('content-type');
+            console.log('响应Content-Type:', contentType);
+            
+            const dataText = await response.text();
+            console.log('API原始响应数据:', dataText);
+            
+            let data;
+            try {
+                data = JSON.parse(dataText);
+            } catch (e) {
+                console.error('JSON解析错误:', e);
+                return res.status(500).json({ error: '无法解析API响应' });
+            }
+            
+            console.log('解析后的API响应数据:', JSON.stringify(data, null, 2));
+            
+            if (!data.data || !data.data[0] || !data.data[0].url) {
+                console.error('API响应格式错误:', data);
+                return res.status(500).json({ error: 'API响应格式错误，未找到图片URL' });
+            }
+            
+            const originalImageUrl = data.data[0].url;
+            console.log('获取到图片URL:', originalImageUrl);
+
+            // 通知前端原始图片已生成
+            res.write(JSON.stringify({ status: 'processing', progress: 60, message: '正在处理图片尺寸...', originalUrl: originalImageUrl }) + '\n');
+
+            console.log('开始下载图片...');
+            // 第二步：处理不同尺寸的图片
+            try {
+                const imageBuffer = await getImageBuffer(originalImageUrl);
+                console.log('图片下载成功，大小:', imageBuffer.length, '字节');
+                
+                const sizes = [16, 32, 48, 128];
+                const resizedImages = [];
+
+                for (let i = 0; i < sizes.length; i++) {
+                    const size = sizes[i];
+                    console.log(`处理 ${size}x${size} 尺寸...`);
+                    const buffer = await resizeImage(imageBuffer, size);
+                    const fileName = `icon${size}.png`;
+                    
+                    // 在Vercel环境中跳过文件写入
+                    if (process.env.VERCEL !== '1') {
+                        try {
+                            await fs.writeFile(path.join(__dirname, fileName), buffer);
+                            console.log(`文件 ${fileName} 写入成功`);
+                        } catch (err) {
+                            console.warn(`无法写入文件 ${fileName}:`, err);
+                        }
+                    }
+                    
+                    resizedImages.push({
+                        size: size,
+                        data: buffer.toString('base64'),
+                        fileName: fileName
+                    });
+
+                    // 更新压缩进度
+                    const progress = 60 + Math.floor((i + 1) / sizes.length * 40);
+                    res.write(JSON.stringify({ status: 'processing', progress, message: `正在生成 ${size}x${size} 尺寸...` }) + '\n');
+                }
+
+                console.log('所有尺寸处理完成，发送完成状态...');
+                // 返回最终结果
+                res.write(JSON.stringify({ status: 'completed', progress: 100, message: '处理完成', sizes: resizedImages }) + '\n');
+                res.end();
+            } catch (imageError) {
+                console.error('处理图片时出错:', imageError);
+                res.status(500).json({ error: '处理图片时出错: ' + imageError.message });
+            }
+        } catch (fetchError) {
+            clearTimeout(timeout);
+            console.error('发送API请求时出错:', fetchError);
+            throw fetchError; // 向上抛出错误，统一处理
         }
-
-        // 返回最终结果
-        res.write(JSON.stringify({ status: 'completed', progress: 100, message: '处理完成', sizes: resizedImages }) + '\n');
-        res.end();
-
     } catch (error) {
-        console.error('Error:', error);
+        console.error('生成Logo过程中发生错误:', error);
         let errorMessage = '生成Logo时出现错误';
         
         if (error.name === 'AbortError') {
@@ -147,7 +195,9 @@ app.post('/generate-logo', async (req, res) => {
             errorMessage = error.message || errorMessage;
         }
         
-        res.status(500).json({ error: errorMessage });
+        if (!res.headersSent) {
+            res.status(500).json({ error: errorMessage });
+        }
     }
 });
 
