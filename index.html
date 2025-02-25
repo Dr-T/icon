@@ -100,10 +100,12 @@
             const logoImage = document.getElementById('logoImage');
             
             progressContainer.style.display = 'block';
+            progressBar.style.width = '0%';
             spinner.style.display = 'none';
             logoImage.style.display = 'none';
             
             try {
+                console.log('正在发送生成Logo请求...');
                 // 发送请求到后端服务
                 const response = await fetch('/generate-logo', {
                     method: 'POST',
@@ -117,35 +119,207 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `请求失败: ${response.status}`);
                 }
                 
+                if (!response.body) {
+                    throw new Error('浏览器不支持流式响应处理');
+                }
+                
+                console.log('开始处理流式响应...');
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
                 
+                let buffer = '';
+                
                 while (true) {
                     const { value, done } = await reader.read();
-                    if (done) break;
+                    if (done) {
+                        console.log('流式响应读取完毕');
+                        break;
+                    }
                     
-                    const chunk = decoder.decode(value, { stream: true });
-                    const updates = chunk.split('\n')
-                        .filter(Boolean)
-                        .map(str => {
-                            try {
-                                return JSON.parse(str);
-                            } catch (e) {
-                                console.error('Failed to parse update:', str);
-                                return null;
+                    // 解码新数据并添加到缓冲区
+                    buffer += decoder.decode(value, { stream: true });
+                    
+                    // 处理完整的JSON对象
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || ''; // 保留最后一个可能不完整的行
+                    
+                    for (const line of lines) {
+                        if (!line.trim()) continue;
+                        
+                        try {
+                            console.log('解析JSON数据:', line);
+                            const update = JSON.parse(line);
+                            
+                            // 更新进度条
+                            progressBar.style.width = `${update.progress}%`;
+                            progressText.textContent = update.message;
+                            
+                            if (update.status === 'completed') {
+                                console.log('处理完成，显示下载按钮');
+                                // 处理完成，显示下载按钮
+                                progressContainer.style.display = 'none';
+                                
+                                // 创建下载按钮
+                                const downloadBtn = document.createElement('button');
+                                downloadBtn.className = 'download-btn';
+                                downloadBtn.textContent = '下载全部尺寸';
+                                downloadBtn.onclick = async () => {
+                                    // 创建一个JSZip实例
+                                    const zip = new JSZip();
+                                    
+                                    // 添加所有尺寸的图片到zip
+                                    for (const sizeData of update.sizes) {
+                                        const imgData = atob(sizeData.data);
+                                        const arrayBuffer = new ArrayBuffer(imgData.length);
+                                        const uint8Array = new Uint8Array(arrayBuffer);
+                                        
+                                        for (let i = 0; i < imgData.length; i++) {
+                                            uint8Array[i] = imgData.charCodeAt(i);
+                                        }
+                                        
+                                        zip.file(`icon${sizeData.size}.png`, uint8Array);
+                                    }
+                                    
+                                    // 生成并下载zip文件
+                                    const content = await zip.generateAsync({type: 'blob'});
+                                    const downloadUrl = URL.createObjectURL(content);
+                                    const link = document.createElement('a');
+                                    link.href = downloadUrl;
+                                    link.download = 'images.zip';
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                    URL.revokeObjectURL(downloadUrl);
+                                };
+                                
+                                // 将下载按钮添加到logo容器中
+                                logoContainer.insertBefore(downloadBtn, logoImage);
+                            } else if (update.originalUrl) {
+                                console.log('显示原始图片');
+                                // a显示原始图片
+                                logoImage.src = update.originalUrl;
+                                logoImage.style.display = 'block';
                             }
-                        })
-                        .filter(Boolean);
+                        } catch (e) {
+                            console.error('解析JSON失败:', line, e);
+                        }
+                    }
+                }
+            }
+            catch (error) {
+                console.error('处理过程中发生错误:', error);
+                const errorModal = document.getElementById('errorModal');
+                const errorMessage = document.getElementById('errorMessage');
+                const closeBtn = document.querySelector('.close-btn');
                 
-                    for (const update of updates) {
+                // 隐藏进度条
+                progressContainer.style.display = 'none';
+                
+                // 显示错误信息
+                errorMessage.textContent = error.message || '生成Logo时出现错误，请重试';
+                errorModal.style.display = 'block';
+                
+                // 关闭按钮事件
+                closeBtn.onclick = function() {
+                    errorModal.style.display = 'none';
+                }
+                
+                // 点击模态框外部关闭
+                window.onclick = function(event) {
+                    if (event.target == errorModal) {
+                        errorModal.style.display = 'none';
+                    }
+                }
+            }
+        });
+    </script>
+    <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
+    <script>
+        // 初始化Vercel Analytics
+        va('script', { url: '/_vercel/insights/script.js' });
+    </script>
+</body>
+</html>
+<script>
+    async function handleLogoUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+    
+        // 清理之前的内容
+        const logoContainer = document.querySelector('.logo-container');
+        const downloadBtn = logoContainer.querySelector('.download-btn');
+        if (downloadBtn) {
+            logoContainer.removeChild(downloadBtn);
+        }
+    
+        // 显示进度条，隐藏其他元素
+        const progressContainer = document.querySelector('.progress-container');
+        const progressBar = document.querySelector('.progress-bar');
+        const progressText = document.querySelector('.progress-text');
+        const spinner = document.querySelector('.loading-spinner');
+        const logoImage = document.getElementById('logoImage');
+        
+        progressContainer.style.display = 'block';
+        progressBar.style.width = '0%';
+        spinner.style.display = 'none';
+        logoImage.style.display = 'none';
+    
+        const formData = new FormData();
+        formData.append('logo', file);
+    
+        try {
+            console.log('开始上传图片...');
+            const response = await fetch('/upload-logo', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `请求失败: ${response.status}`);
+            }
+            
+            if (!response.body) {
+                throw new Error('浏览器不支持流式响应处理');
+            }
+
+            console.log('开始处理上传响应...');
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            
+            let buffer = '';
+            
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) {
+                    console.log('上传响应读取完毕');
+                    break;
+                }
+                
+                // 解码新数据并添加到缓冲区
+                buffer += decoder.decode(value, { stream: true });
+                
+                // 处理完整的JSON对象
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || ''; // 保留最后一个可能不完整的行
+                
+                for (const line of lines) {
+                    if (!line.trim()) continue;
+                    
+                    try {
+                        console.log('解析上传响应JSON:', line);
+                        const update = JSON.parse(line);
+                        
                         // 更新进度条
                         progressBar.style.width = `${update.progress}%`;
                         progressText.textContent = update.message;
-    
+                        
                         if (update.status === 'completed') {
+                            console.log('上传处理完成');
                             // 处理完成，显示下载按钮
                             progressContainer.style.display = 'none';
                             
@@ -182,169 +356,28 @@
                                 URL.revokeObjectURL(downloadUrl);
                             };
                             
-                            // 将下载按钮添加到logo容器中，插入到图片元素之前
-                            const logoContainer = document.querySelector('.logo-container');
-                            const logoImage = document.getElementById('logoImage');
+                            // 将下载按钮添加到logo容器中
                             logoContainer.insertBefore(downloadBtn, logoImage);
                         } else if (update.originalUrl) {
+                            console.log('显示原始上传图片');
                             // 显示原始图片
                             logoImage.src = update.originalUrl;
                             logoImage.style.display = 'block';
                         }
-                    }
-                }
-            }
-        catch (error) {
-            const errorModal = document.getElementById('errorModal');
-            const errorMessage = document.getElementById('errorMessage');
-            const closeBtn = document.querySelector('.close-btn');
-            
-            // 隐藏进度条
-            progressContainer.style.display = 'none';
-            
-            // 显示错误信息
-            errorMessage.textContent = error.message || '生成Logo时出现错误，请重试';
-            errorModal.style.display = 'block';
-            
-            // 关闭按钮事件
-            closeBtn.onclick = function() {
-                errorModal.style.display = 'none';
-            }
-            
-            // 点击模态框外部关闭
-            window.onclick = function(event) {
-                if (event.target == errorModal) {
-                    errorModal.style.display = 'none';
-                }
-            }
-            
-            console.error('Error:', error);
-        }
-        });
-    </script>
-    <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
-    <script>
-        // 初始化Vercel Analytics
-        va('script', { url: '/_vercel/insights/script.js' });
-    </script>
-</body>
-</html>
-<script>
-    async function handleLogoUpload(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-    
-        // 清理之前的内容
-        const logoContainer = document.querySelector('.logo-container');
-        const downloadBtn = logoContainer.querySelector('.download-btn');
-        if (downloadBtn) {
-            logoContainer.removeChild(downloadBtn);
-        }
-    
-        // 显示进度条，隐藏其他元素
-        const progressContainer = document.querySelector('.progress-container');
-        const progressBar = document.querySelector('.progress-bar');
-        const progressText = document.querySelector('.progress-text');
-        const spinner = document.querySelector('.loading-spinner');
-        const logoImage = document.getElementById('logoImage');
-        
-        progressContainer.style.display = 'block';
-        spinner.style.display = 'none';
-        logoImage.style.display = 'none';
-    
-        const formData = new FormData();
-        formData.append('logo', file);
-    
-        try {
-            const response = await fetch('/upload-logo', {
-                method: 'POST',
-                body: formData
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            
-            while (true) {
-                const { value, done } = await reader.read();
-                if (done) break;
-                
-                const chunk = decoder.decode(value, { stream: true });
-                const updates = chunk.split('\n')
-                    .filter(Boolean)
-                    .map(str => {
-                        try {
-                            return JSON.parse(str);
-                        } catch (e) {
-                            console.error('Failed to parse update:', str);
-                            return null;
-                        }
-                    })
-                    .filter(Boolean);
-
-                for (const update of updates) {
-                    // 更新进度条
-                    progressBar.style.width = `${update.progress}%`;
-                    progressText.textContent = update.message;
-        
-                    if (update.status === 'completed') {
-                        // 处理完成，显示下载按钮
-                        progressContainer.style.display = 'none';
-                        
-                        // 创建下载按钮
-                        const downloadBtn = document.createElement('button');
-                        downloadBtn.className = 'download-btn';
-                        downloadBtn.textContent = '下载全部尺寸';
-                        downloadBtn.onclick = async () => {
-                            // 创建一个JSZip实例
-                            const zip = new JSZip();
-                            
-                            // 添加所有尺寸的图片到zip
-                            for (const sizeData of update.sizes) {
-                                const imgData = atob(sizeData.data);
-                                const arrayBuffer = new ArrayBuffer(imgData.length);
-                                const uint8Array = new Uint8Array(arrayBuffer);
-                                
-                                for (let i = 0; i < imgData.length; i++) {
-                                    uint8Array[i] = imgData.charCodeAt(i);
-                                }
-                                
-                                zip.file(`icon${sizeData.size}.png`, uint8Array);
-                            }
-                            
-                            // 生成并下载zip文件
-                            const content = await zip.generateAsync({type: 'blob'});
-                            const downloadUrl = URL.createObjectURL(content);
-                            const link = document.createElement('a');
-                            link.href = downloadUrl;
-                            link.download = 'images.zip';
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                            URL.revokeObjectURL(downloadUrl);
-                        };
-                        
-                        // 将下载按钮添加到logo容器中，插入到图片元素之前
-                        const logoContainer = document.querySelector('.logo-container');
-                        const logoImage = document.getElementById('logoImage');
-                        logoContainer.insertBefore(downloadBtn, logoImage);
-                    } else if (update.originalUrl) {
-                        // 显示原始图片
-                        logoImage.src = update.originalUrl;
-                        logoImage.style.display = 'block';
+                    } catch (e) {
+                        console.error('解析上传响应JSON失败:', line, e);
                     }
                 }
             }
         } catch (error) {
+            console.error('上传处理过程中发生错误:', error);
             const errorModal = document.getElementById('errorModal');
             const errorMessage = document.getElementById('errorMessage');
             const closeBtn = document.querySelector('.close-btn');
             
-            // 隐藏进度条
+            // 隐藏进度条和加载动画
             progressContainer.style.display = 'none';
+            spinner.style.display = 'none';
             
             // 显示错误信息
             errorMessage.textContent = error.message || '处理图片时出现错误，请重试';
@@ -361,8 +394,6 @@
                     errorModal.style.display = 'none';
                 }
             }
-            
-            console.error('Error:', error);
         }
     }
 </script>

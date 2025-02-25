@@ -28,6 +28,10 @@
       "dest": "server.js"
     },
     {
+      "src": "/upload-logo",
+      "dest": "server.js"
+    },
+    {
       "src": "/",
       "dest": "index.html"
     },

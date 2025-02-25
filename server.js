@@ -98,7 +98,16 @@ app.post('/generate-logo', async (req, res) => {
             const size = sizes[i];
             const buffer = await resizeImage(imageBuffer, size);
             const fileName = `icon${size}.png`;
-            await fs.writeFile(path.join(__dirname, fileName), buffer);
+            
+            // 在Vercel环境中跳过文件写入
+            if (process.env.VERCEL !== '1') {
+                try {
+                    await fs.writeFile(path.join(__dirname, fileName), buffer);
+                } catch (err) {
+                    console.warn(`无法写入文件 ${fileName}:`, err);
+                }
+            }
+            
             resizedImages.push({
                 size: size,
                 data: buffer.toString('base64'),
@@ -121,12 +130,16 @@ app.post('/generate-logo', async (req, res) => {
         if (error.name === 'AbortError') {
             errorMessage = '请求超时，请稍后重试';
         } else if (error.response) {
-            const contentType = error.response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                const errorData = await error.response.json();
-                errorMessage = errorData.error?.message || errorData.error || '服务器返回了一个错误';
-            } else {
-                errorMessage = `API请求失败: HTTP ${error.response.status} - ${error.response.statusText}`;
+            try {
+                const contentType = error.response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const errorData = await error.response.json();
+                    errorMessage = errorData.error?.message || errorData.error || '服务器返回了一个错误';
+                } else {
+                    errorMessage = `API请求失败: HTTP ${error.response.status} - ${error.response.statusText}`;
+                }
+            } catch (e) {
+                errorMessage = `请求失败: ${error.response.status}`;
             }
         } else if (error instanceof TypeError && error.message.includes('fetch')) {
             errorMessage = '网络连接失败，请检查您的网络连接';
@@ -162,12 +175,29 @@ app.post('/upload-logo', upload.single('logo'), async (req, res) => {
             const size = sizes[i];
             const buffer = await resizeImage(imageBuffer, size);
             const fileName = `icon${size}.png`;
-            await fs.writeFile(path.join(__dirname, fileName), buffer);
+            
+            // 在Vercel环境中跳过文件写入
+            if (process.env.VERCEL !== '1') {
+                try {
+                    await fs.writeFile(path.join(__dirname, fileName), buffer);
+                } catch (err) {
+                    console.warn(`无法写入文件 ${fileName}:`, err);
+                }
+            }
+            
             resizedImages.push({
                 size: size,
                 data: buffer.toString('base64'),
                 fileName: fileName
             });
+            
+            // 更新进度
+            const progress = 60 + Math.floor((i + 1) / sizes.length * 40);
+            res.write(JSON.stringify({ 
+                status: 'processing', 
+                progress, 
+                message: `正在生成 ${size}x${size} 尺寸...` 
+            }) + '\n');
         }
 
         // 发送完成消息和处理后的图片
@@ -181,7 +211,7 @@ app.post('/upload-logo', upload.single('logo'), async (req, res) => {
         res.end();
     } catch (error) {
         console.error('Error processing uploaded image:', error);
-        res.status(500).json({ error: '处理图片时出现错误' });
+        res.status(500).json({ error: '处理图片时出现错误: ' + (error.message || '') });
     }
 });
 
