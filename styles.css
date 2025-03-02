@@ -49,7 +49,7 @@ body {
 .header-content {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    justify-content: space-between;
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 1rem;
@@ -88,6 +88,81 @@ body {
     margin-bottom: 0.5rem;
     font-weight: 600;
     letter-spacing: -0.02em;
+}
+
+/* 提示条样式 - 现在位于标题区域右侧 */
+.notification-container {
+    flex-shrink: 0;
+    max-width: 450px;
+}
+
+.notification-content {
+    background-color: #f8f9fa; /* 更简洁的浅灰色背景 */
+    border-radius: 12px;
+    padding: 10px 16px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px; /* 调大字号 */
+    color: #4b5563;
+    position: relative;
+}
+
+.notification-content span {
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.notification-content span:before {
+    content: "🏆";
+    margin-right: 6px;
+}
+
+.notification-content a {
+    color: #fff;
+    text-decoration: none;
+    font-weight: 500;
+    padding: 6px 14px;
+    background-color: #0071e3; /* 苹果蓝色 */
+    border-radius: 30px; /* 使按钮更圆 */
+    transition: all 0.2s ease;
+    position: relative;
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-size: 14px; /* 匹配提示条字号 */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.notification-content a:hover {
+    background-color: #0077ed;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+@media (max-width: 1024px) {
+    .header-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .notification-container {
+        max-width: 100%;
+        width: 100%;
+    }
+}
+
+@media (max-width: 768px) {
+    .notification-content {
+        flex-direction: column;
+        gap: 4px;
+        text-align: center;
+        padding: 10px 15px;
+    }
+    
+    .notification-content a {
+        margin-bottom: 4px;
+    }
 }
 
 /* 主要内容区域 */

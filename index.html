@@ -23,6 +23,13 @@
                     <p>输入插件信息，自动生成专属LOGO及icons图标包</p>
                 </div>
             </div>
+            <!-- 提示条移到标题区域右侧 -->
+            <div class="notification-container" id="notificationBar">
+                <div class="notification-content">
+                    <span>本项目为 WaytoAGI 编程挑战 参赛项目</span>
+                    <a href="https://waytoagi.feishu.cn/record/V4sOrBJNheHeZccQ84Ocz7RznMd" target="_blank" rel="noreferrer">点击投票支持</a>
+                </div>
+            </div>
         </div>
     </header>
 
@@ -309,6 +316,21 @@
     <script>
         // 初始化Vercel Analytics
         va('script', { url: '/_vercel/insights/script.js' });
+    </script>
+    <script>
+        // 处理提示条关闭
+        // document.getElementById('closeNotification').addEventListener('click', function() {
+        //     document.getElementById('notificationBar').style.display = 'none';
+            // 可选：保存到本地存储，使通知在未来访问中保持关闭状态
+        //     localStorage.setItem('notificationClosed', 'true');
+        // });
+
+        // 检查是否应该显示提示条
+        // document.addEventListener('DOMContentLoaded', function() {
+        //     if (localStorage.getItem('notificationClosed') === 'true') {
+        //         document.getElementById('notificationBar').style.display = 'none';
+        //     }
+        // });
     </script>
 </body>
 </html>
