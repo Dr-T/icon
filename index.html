@@ -46,7 +46,7 @@
                 <div class="form-group">
                     <label for="pluginDesc">插件描述</label>
                     <textarea id="pluginDesc" name="pluginDesc" required 
-                              placeholder="请输入插件的功能描述"></textarea>
+                              placeholder="输入插件功能描述，或你希望图片中包含的元素"></textarea>
                 </div>
                 <button type="submit" class="generate-btn">生成LOGO</button>
                 <button type="button" class="upload-btn" onclick="document.getElementById('logoUpload').click()">上传LOGO</button>
@@ -74,8 +74,9 @@
     <div id="errorModal" class="modal" style="display: none;">
         <div class="modal-content">
             <span class="close-btn">&times;</span>
-            <h2>错误提示</h2>
+            <h2>生成失败</h2>
             <p id="errorMessage"></p>
+            <p class="contact-info">如遇失败，请联系我：xandertangv</p>
         </div>
     </div>
 
@@ -109,7 +110,7 @@
             progressContainer.style.display = 'block';
             progressBar.style.width = '0%';
             progressText.textContent = '准备生成...';
-            spinner.style.display = 'none';
+            spinner.style.display = 'block';
             logoImage.style.display = 'none';
             
             try {
@@ -132,9 +133,10 @@
                     const errorData = await response.json();
                     throw new Error(errorData.error || `请求失败: ${response.status}`);
                 } else if (!response.ok) {
-                    throw new Error(`请求失败: ${response.status}`);
+                    const errorData = await response.json();
+                    throw new Error(errorData.error?.message || errorData.error || `请求失败: ${response.status}`);
                 }
-                
+
                 if (!response.body) {
                     throw new Error('浏览器不支持流式响应处理');
                 }
@@ -169,9 +171,14 @@
                             console.log('解析JSON数据:', line);
                             const update = JSON.parse(line);
                             
-                            // 更新进度条
+                            if (update.status === 'error') {
+                                throw new Error(update.error);
+                            }
+                            
+                            // 更新进度条和loading状态
                             progressBar.style.width = `${update.progress}%`;
                             progressText.textContent = update.message;
+                            spinner.style.display = update.showSpinner ? 'block' : 'none';
                             
                             if (update.status === 'completed') {
                                 console.log('处理完成，显示下载按钮');
@@ -226,7 +233,7 @@
                             console.error('解析JSON失败:', line, e);
                             if (!hasError) {
                                 hasError = true;
-                                throw new Error('解析服务器响应失败');
+                                throw new Error(e.message || update?.error || '解析服务器响应失败');
                             }
                         }
                     }
@@ -297,16 +304,19 @@
                 // 显示错误信息
                 errorMessage.textContent = error.message || '生成Logo时出现错误，请重试';
                 errorModal.style.display = 'block';
+                setTimeout(() => errorModal.classList.add('show'), 10);
                 
                 // 关闭按钮事件
                 closeBtn.onclick = function() {
-                    errorModal.style.display = 'none';
+                    errorModal.classList.remove('show');
+                    setTimeout(() => errorModal.style.display = 'none', 300);
                 }
                 
                 // 点击模态框外部关闭
                 window.onclick = function(event) {
                     if (event.target == errorModal) {
-                        errorModal.style.display = 'none';
+                        errorModal.classList.remove('show');
+                        setTimeout(() => errorModal.style.display = 'none', 300);
                     }
                 }
             }
@@ -472,6 +482,12 @@
             // 显示错误信息
             errorMessage.textContent = error.message || '处理图片时出现错误，请重试';
             errorModal.style.display = 'block';
+            
+            // 添加联系方式提示
+            const contactInfo = document.createElement('div');
+            contactInfo.className = 'contact-info';
+            contactInfo.textContent = '如遇失败，请联系我：xandertangv';
+            document.querySelector('.modal-content').appendChild(contactInfo);
             
             // 关闭按钮事件
             closeBtn.onclick = function() {

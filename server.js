@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
@@ -48,11 +50,11 @@ app.post('/generate-logo', async (req, res) => {
         const { pluginName, pluginDesc } = req.body;
 
         // 第一步：生成原始图片
-        res.write(JSON.stringify({ status: 'generating', progress: 30, message: '正在生成原始图片...' }) + '\n');
+        res.write(JSON.stringify({ status: 'generating', progress: 30, message: '正在生成原始图片...', showSpinner: true }) + '\n');
         
         console.log('构建提示词...');
         // 构建提示词
-        const prompt = `logo, flat, clean, vector, simplicity modern, minimalist。为名为"${pluginName}"的应用设计简洁现代的logo，其功能是：${pluginDesc}。`;
+        const prompt = `Create a modern, minimalist, flat, clean, and vector logo for an application called '${pluginName}'. 其功能是：${pluginDesc}. The logo should be the only element, centered on a blank monochrome canvas.`;
         
         // 设置请求超时
         const controller = new AbortController();
@@ -92,7 +94,9 @@ app.post('/generate-logo', async (req, res) => {
                 }
                 const status = response.status;
                 const message = errorData?.error?.message || errorData?.message || `API请求失败: ${status}`;
-                return res.status(status).json({ error: message });
+                res.write(JSON.stringify({ status: 'error', error: message }) + '\n');
+                res.end();
+                return;
             }
 
             const contentType = response.headers.get('content-type');
@@ -196,7 +200,8 @@ app.post('/generate-logo', async (req, res) => {
         }
         
         if (!res.headersSent) {
-            res.status(500).json({ error: errorMessage });
+            res.write(JSON.stringify({ status: 'error', error: errorMessage }) + '\n');
+            res.end();
         }
     }
 });
