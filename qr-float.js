@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
     qrFloat.innerHTML = `
         <div class="qr-float-content">
             <p class="qr-text">扫码交流</p>
-            <img src="assets/QR.jpg" alt="联系二维码" class="qr-image">
+            <img src="/assets/QR.jpg" alt="联系二维码" class="qr-image">
             <p class="qr-feedback">如遇问题，欢迎反馈</p>
         </div>
         <button class="qr-toggle" aria-label="折叠/展开二维码">
