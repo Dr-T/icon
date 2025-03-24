@@ -50,7 +50,7 @@
                               placeholder="输入插件功能描述，或你希望图片中包含的元素"></textarea>
                 </div>
                 <button type="submit" class="generate-btn">生成LOGO</button>
-                <button type="button" class="upload-btn" onclick="document.getElementById('logoUpload').click()">上传LOGO</button>
+                <button type="button" class="upload-btn" id="uploadBtn" onclick="handleUploadClick()">上传LOGO</button>
                 <input type="file" id="logoUpload" accept="image/*" style="display: none" onchange="handleLogoUpload(event)">
             </form>
         </section>
@@ -80,6 +80,13 @@
             <p class="contact-info">如遇失败，请联系我：xandertangv</p>
         </div>
     </div>
+    
+    <!-- Toast提示 -->
+    <div id="toastMessage" class="toast-message" style="display: none;">
+        <div class="toast-content">
+            <span id="toastText">请等待当前生成任务完成</span>
+        </div>
+    </div>
 
     <!-- 底部信息区域 -->
     <footer class="footer">
@@ -87,8 +94,84 @@
     </footer>
 
     <script>
+        // 防重复点击函数
+        function disableButton(button, text) {
+            // 保存原始文本
+            const originalText = button.textContent;
+            // 禁用按钮
+            button.disabled = true;
+            button.classList.add('button-disabled');
+            // 如果提供了文本，则更改按钮文本
+            if (text) {
+                button.textContent = text;
+            }
+            
+            return function enableButton() {
+                // 恢复按钮状态
+                button.disabled = false;
+                button.classList.remove('button-disabled');
+                // 恢复原始文本
+                button.textContent = originalText;
+            };
+        }
+        
+        // 显示Toast提示函数
+        function showToast(message, duration = 2000) {
+            const toast = document.getElementById('toastMessage');
+            const toastText = document.getElementById('toastText');
+            
+            // 设置提示文本
+            toastText.textContent = message;
+            
+            // 显示Toast
+            toast.style.display = 'block';
+            setTimeout(() => toast.classList.add('show'), 10);
+            
+            // 设置自动隐藏
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.style.display = 'none', 300);
+            }, duration);
+        }
+        
+        // 标记生成状态的变量
+        let isGenerating = false;
+        
         document.getElementById('logoForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            
+            // 获取生成按钮
+            const generateBtn = document.querySelector('.generate-btn');
+            const uploadBtn = document.getElementById('uploadBtn');
+            
+            // 检查生成状态
+            if (isGenerating) {
+                showToast('请等待当前生成任务完成');
+                return;
+            }
+            
+            // 设置生成状态为true
+            isGenerating = true;
+            
+            // 禁用按钮并显示loading状态
+            generateBtn.disabled = true;
+            uploadBtn.disabled = true;
+            generateBtn.textContent = '生成中...';
+            uploadBtn.textContent = '请等待...';
+            generateBtn.classList.add('button-disabled');
+            uploadBtn.classList.add('button-disabled');
+            
+            const enableButton = () => {
+                generateBtn.disabled = false;
+                generateBtn.textContent = '生成Logo';
+                generateBtn.classList.remove('button-disabled');
+            };
+            
+            const enableUploadButton = () => {
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = '上传Logo';
+                uploadBtn.classList.remove('button-disabled');
+            };
             
             // 获取表单数据
             const pluginName = document.getElementById('pluginName').value;
@@ -320,6 +403,13 @@
                         setTimeout(() => errorModal.style.display = 'none', 300);
                     }
                 }
+            } finally {
+                // 无论成功还是失败，都恢复生成按钮状态
+                enableButton();
+                // 恢复上传按钮状态
+                enableUploadButton();
+                // 重置生成状态
+                isGenerating = false;
             }
         });
     </script>
@@ -346,8 +436,39 @@
 </body>
 </html>
 <script>
+    function handleUploadClick() {
+        // 获取上传按钮并禁用它
+        const uploadBtn = document.getElementById('uploadBtn');
+        const enableButton = disableButton(uploadBtn, '选择中...');
+        
+        // 点击隐藏的文件输入框
+        document.getElementById('logoUpload').click();
+        
+        // 短暂延迟后恢复按钮状态（如果用户没有选择文件）
+        setTimeout(() => {
+            // 检查是否已经选择了文件
+            if (!document.getElementById('logoUpload').files.length) {
+                enableButton();
+            }
+        }, 1000);
+    }
+    
     async function handleLogoUpload(event) {
         const file = event.target.files[0];
+        
+        // 如果用户取消了文件选择，则直接返回
+        if (!file) {
+            // 恢复上传按钮状态
+            const uploadBtn = document.getElementById('uploadBtn');
+            uploadBtn.disabled = false;
+            uploadBtn.classList.remove('button-disabled');
+            uploadBtn.textContent = '上传LOGO';
+            return;
+        }
+        
+        // 禁用上传按钮
+        const uploadBtn = document.getElementById('uploadBtn');
+        const enableUploadButton = disableButton(uploadBtn, '处理中...');
         if (!file) return;
     
         // 清理之前的内容
@@ -501,6 +622,9 @@
                     errorModal.style.display = 'none';
                 }
             }
+        } finally {
+            // 无论成功还是失败，都恢复上传按钮状态
+            enableUploadButton();
         }
     }
 </script>

@@ -386,6 +386,25 @@ body {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
+/* 按钮禁用状态样式 */
+.button-disabled,
+.generate-btn:disabled,
+.upload-btn:disabled,
+.download-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+    pointer-events: none;
+}
+
+.generate-btn.button-disabled:hover,
+.upload-btn.button-disabled:hover,
+.download-btn.button-disabled:hover {
+    transform: none;
+    box-shadow: none;
+}
+
 /* Logo展示区域 */
 .logo-section {
     flex: 1;
@@ -656,6 +675,35 @@ body {
     line-height: 1.5;
 }
 
+/* Toast提示样式 */
+.toast-message {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 8px;
+    z-index: 1000;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+}
+
+.toast-message.show {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
+.toast-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
     .main {
@@ -665,6 +713,11 @@ body {
     .form-section,
     .logo-section {
         width: 100%;
+    }
+    
+    .toast-message {
+        width: 90%;
+        text-align: center;
     }
 }
 
