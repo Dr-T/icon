@@ -7,7 +7,11 @@ const sharp = require('sharp');
 const multer = require('multer');
 const fs = require('fs').promises;
 const path = require('path');
+const axios = require('axios');
 const upload = multer();
+
+// 导入NocoDB工具函数
+const { saveToNocoDB } = require('./utils/nocodb');
 
 const app = express();
 
@@ -94,6 +98,23 @@ app.post('/generate-logo', async (req, res) => {
                 }
                 const status = response.status;
                 const message = errorData?.error?.message || errorData?.message || `API请求失败: ${status}`;
+                
+                // 记录失败信息到NocoDB
+                try {
+                    await saveToNocoDB({
+                        plugin_name: pluginName,
+                        plugin_desc: pluginDesc,
+                        prompt: prompt,
+                        original_url: '',
+                        status: 'error',
+                        error_message: message
+                    });
+                    console.log('Logo生成失败记录已保存到NocoDB');
+                } catch (recordError) {
+                    console.error('保存失败记录到NocoDB失败:', recordError);
+                    // 记录失败不影响主流程
+                }
+                
                 res.write(JSON.stringify({ status: 'error', error: message }) + '\n');
                 res.end();
                 return;
@@ -163,6 +184,25 @@ app.post('/generate-logo', async (req, res) => {
                 }
 
                 console.log('所有尺寸处理完成，发送完成状态...');
+                
+                // 记录成功生成的Logo信息到NocoDB
+                try {
+                    // 使用API返回的revised_prompt而不是原始prompt
+                    const revisedPrompt = data.data[0].revised_prompt || prompt;
+                    await saveToNocoDB({
+                        plugin_name: pluginName,
+                        plugin_desc: pluginDesc,
+                        prompt: revisedPrompt,
+                        original_url: originalImageUrl,
+                        status: 'success',
+                        error_message: ''
+                    });
+                    console.log('Logo生成记录已保存到NocoDB');
+                } catch (recordError) {
+                    console.error('保存记录到NocoDB失败:', recordError);
+                    // 记录失败不影响主流程
+                }
+                
                 // 返回最终结果
                 res.write(JSON.stringify({ status: 'completed', progress: 100, message: '处理完成', sizes: resizedImages }) + '\n');
                 res.end();
@@ -197,6 +237,22 @@ app.post('/generate-logo', async (req, res) => {
             errorMessage = '网络连接失败，请检查您的网络连接';
         } else {
             errorMessage = error.message || errorMessage;
+        }
+        
+        // 记录错误信息到NocoDB
+        try {
+            await saveToNocoDB({
+                plugin_name: req.body.pluginName || '',
+                plugin_desc: req.body.pluginDesc || '',
+                prompt: prompt || '',
+                original_url: '',
+                status: 'error',
+                error_message: errorMessage
+            });
+            console.log('Logo生成错误记录已保存到NocoDB');
+        } catch (recordError) {
+            console.error('保存错误记录到NocoDB失败:', recordError);
+            // 记录失败不影响主流程
         }
         
         if (!res.headersSent) {
@@ -254,7 +310,24 @@ app.post('/upload-logo', upload.single('logo'), async (req, res) => {
                 message: `正在生成 ${size}x${size} 尺寸...` 
             }) + '\n');
         }
-
+        // 记录上传的Logo信息到NocoDB
+        try {
+            // 获取完整的图片base64数据
+            const fullBase64 = imageBuffer.toString('base64');            
+            await saveToNocoDB({
+                plugin_name: req.body.pluginName || '用户上传',
+                plugin_desc: req.body.pluginDesc || '用户上传的Logo',
+                prompt: '',
+                original_url: `data:${req.file.mimetype};base64,${fullBase64}`,
+                status: 'upload',
+                error_message: ''
+            });
+            console.log('Logo上传记录已保存到NocoDB');
+        } catch (recordError) {
+            console.error('保存上传记录到NocoDB失败:', recordError);
+            // 记录失败不影响主流程
+        }
+        
         // 发送完成消息和处理后的图片
         res.write(JSON.stringify({
             status: 'completed',
@@ -266,6 +339,23 @@ app.post('/upload-logo', upload.single('logo'), async (req, res) => {
         res.end();
     } catch (error) {
         console.error('Error processing uploaded image:', error);
+        
+        // 记录上传失败信息到NocoDB
+        try {
+            await saveToNocoDB({
+                plugin_name: req.body.pluginName || '用户上传',
+                plugin_desc: req.body.pluginDesc || '用户上传的Logo',
+                prompt: '',
+                original_url: '',
+                status: 'error',
+                error_message: '处理图片时出现错误: ' + (error.message || '')
+            });
+            console.log('Logo上传失败记录已保存到NocoDB');
+        } catch (recordError) {
+            console.error('保存上传失败记录到NocoDB失败:', recordError);
+            // 记录失败不影响主流程
+        }
+        
         res.status(500).json({ error: '处理图片时出现错误: ' + (error.message || '') });
     }
 });
